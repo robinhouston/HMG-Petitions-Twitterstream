@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import datetime, htmlentitydefs, logging, os, re, sys, urllib, urllib2
+import datetime, htmlentitydefs, logging, os, re, sys, time, urllib, urllib2
 
 sys.path = [os.path.join(os.path.dirname(__file__), "lib")] + sys.path
 import redis
@@ -55,6 +55,37 @@ def _extract(regex, text, tolerate_missing=False):
 def _int(s):
     return int(re.sub(r'\D', '', s))
 
+MAX_BACKOFF_SECS = 60
+MAX_RETRIES = 10
+def urlfetch(url):
+    logging.info("Fetching %s", url)
+    backoff, retries = 1, 0
+    while retries < MAX_RETRIES:
+        
+        # The HTTPError object behaves just like a response object;
+        # we don’t want to distinguish between success and error responses
+        # so dramatically, so just get the response (whatever it is) into
+        # a local variable 'f'.
+        try:
+            f = urllib2.urlopen(url)
+        except urllib2.HTTPError, f:
+            pass
+        
+        try:
+            if f.code == 200:
+                return f.read().decode("utf-8")
+            elif f.code == 502:
+                # 502 "Bad gateway" often indicates a service under load.
+                # Back off and try again.
+                logging.info("502 error. Sleeping for %d seconds", backoff)
+                time.sleep(backoff)
+                backoff, retries = min(backoff * 2, MAX_BACKOFF_SECS), retries + 1
+                continue
+            
+            raise Exception("%s returned status %d" % (url, f.code))
+        finally:
+            f.close()
+
 class PetitionScraper(object):
     def _petition_links(self, html):
         for mo in re.finditer(r'<td class="name"><a href="([^"]+)" class="text_link">([^<]+)', html):
@@ -82,30 +113,13 @@ class PetitionScraper(object):
     def _petition(self, link):
         """Fetch a petition, and return the data as a dict.
         """
-        url = URLBASE + link
-        f = urllib2.urlopen(url)
-        try:
-            if f.code != 200:
-                raise Exception("%s returned status %d" % (url, f.code))
-            r = self._parse_petition_html(f.read().decode("utf-8"))
-            r["link"] = link
-            return r
-        finally:
-            f.close()
+        r = self._parse_petition_html(urlfetch(URLBASE + link))
+        r["link"] = link
+        return r
 
     def fetch_petitions(self, path=URLS["OPEN_PETITIONS_RECENT_FIRST"]):
         while True:
-            url = URLBASE + path
-            logging.info("Fetching %s", url)
-            f = urllib2.urlopen(url)
-            try:
-                if f.code != 200:
-                    raise Exception("%s returned status %d" % (url, f.code))
-                
-                html = f.read().decode("utf-8")
-            finally:
-                f.close()
-            
+            html = urlfetch(URLBASE + path)
             for petition in self._petitions(html):
                 yield petition
             
@@ -127,13 +141,15 @@ class PetitionStore(object):
                 logging.info("%s already exists", petition["link"])
                 break
             self.r.lpush("oldest-first", petition["link"])
+            self.r.lpush("new-and-untweeted", petition["link"])
             for k, v in petition.items():
                 self.r.hset(petition["link"], k, v)
 
 def main():
     logging.basicConfig(level=logging.INFO)
+    r = redis.Redis()
     
-    petition_store = PetitionStore(redis.Redis())
+    petition_store = PetitionStore(r)
     petition_store.get_new_petitions()
 
 if __name__ == "__main__":

@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+# Read tweets from standard input -- one per line, JSON format, with keys
+# "status" and (optionally) "in_reply_to_status_id" -- and post them to
+# Twitter using the account credentials found in the configuration file.
+
+import json
+import logging
+import os
+import re
+import sys
+
+# The WDDS root directory is the parent of the directory this script is in
+WDDS_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+WDDS_LIB = os.path.join(WDDS_ROOT, "lib")
+WDDS_ETC = os.path.join(WDDS_ROOT, "etc")
+
+# Load bundled libraries
+sys.path = [WDDS_LIB] + sys.path
+import tweepy
+
+class Tweeter(object):
+  def __init__(self, tweepy_api):
+    self.tweepy_api = tweepy_api
+  
+  def post_tweet(self, tweet):
+    kwargs = {}
+    if "in_reply_to_status_id" in tweet:
+      kwargs["in_reply_to_status_id"] = tweet["in_reply_to_status_id"]
+    self.tweepy_api.update_status(tweet["status"], **kwargs)
+
+  def read_and_post_tweets(self):
+    blank_line_re = re.compile(r"^\s*$")
+    while True:
+      tweet_json = sys.stdin.readline()
+      if not tweet_json:
+        break # end of file
+      if blank_line_re.match(tweet_json):
+        continue # blank line
+      self.post_tweet(json.loads(tweet_json))
+
+def main(args):
+  from optparse import OptionParser
+  parser = OptionParser(usage = "usage: %prog [options]")
+  parser.add_option("", "--credentials",
+                    action="store", default="twitter.json",
+                    help="name of file containing Twitter credentials in JSON format (default: %default)")
+  parser.add_option("-v", "--verbose",
+                    action="store_true", default=False,
+                    help="print detailed progress information")
+  parser.add_option("", "--trace-http",
+                    action="store_true", default=False,
+                    help="enable HTTP tracing")
+  
+  (options, args) = parser.parse_args(list(args))
+  
+  logging.basicConfig(level = logging.DEBUG if options.verbose else logging.INFO)
+  
+  if len(args) != 0:
+    parser.error("wrong number of arguments")
+  
+  if options.trace_http:
+    tweepy.debug()
+  
+  # Now create the tweepy object, and enter the main loop
+  if os.path.isabs(options.credentials):
+    config = json.load(open(options.credentials, "r"))
+  else:
+    config = json.load(open(os.path.join(WDDS_ETC, options.credentials), "r"))
+  
+  auth = tweepy.OAuthHandler(config["consumer_key"], config["consumer_secret"])
+  auth.set_access_token(config["user_oauth_token"], config["user_oauth_token_secret"])
+  
+  Tweeter(tweepy.API(auth)).read_and_post_tweets()
+
+if __name__ == "__main__":
+  main(sys.argv[1:])

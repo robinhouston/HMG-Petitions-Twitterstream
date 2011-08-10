@@ -1,0 +1,11 @@
+#!/bin/bash
+
+_ukp_bin_directory() {
+    (
+      cd "$(dirname "${BASH_SOURCE[0]}")"/..
+      pwd
+    )
+}
+BIN=$(_ukp_bin_directory)
+
+"$BIN/ukp-to-be-tweeted" | "$BIN/tweet"

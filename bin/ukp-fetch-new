@@ -1,0 +1,37 @@
+#!/usr/bin/python
+
+# Fetch new petitions
+
+home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+sys.path = [os.path.join(home, "lib")] + sys.path + [home]
+
+import logging
+
+import redis
+
+import ukpetitions.scraper
+
+class Fetcher(object):
+    def __init__(self, r):
+        self.r = r
+        self.scraper = ukpetitions.scraper.PetitionScraper()
+    
+    def get_new_petitions(self):
+        r = self.r
+        
+        for petition in self.scraper.fetch_petitions():
+            logging.info("Loaded %s (%s)", petition["link"], petition["title"])
+            if r.exists(petition["link"]):
+                logging.info("%s already exists", petition["link"])
+                break
+            r.lpush("oldest-first", petition["link"])
+            r.lpush("new-and-untweeted", petition["link"])
+            for k, v in petition.items():
+                r.hset(petition["link"], k, v)
+
+def main():
+    logging.basicConfig(level=logging.INFO)
+    Fetcher(redis.Redis()).get_new_petitions()
+
+if __name__ == "__main__":
+    main()
