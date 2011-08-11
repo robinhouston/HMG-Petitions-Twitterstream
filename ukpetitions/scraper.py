@@ -83,8 +83,9 @@ def urlfetch(url):
         try:
             if f.code == 200:
                 return f.read().decode("utf-8")
-            elif f.code == 502:
+            elif f.code == 502 or f.code == 504:
                 # 502 "Bad gateway" often indicates a service under load.
+                # 504 "Gateway timeout" is similar.
                 # Back off and try again.
                 logging.info("502 error. Sleeping for %d seconds", backoff)
                 time.sleep(backoff)
