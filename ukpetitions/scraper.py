@@ -95,6 +95,8 @@ def urlfetch(url):
         finally:
             f.close()
 
+    raise Exception("Giving up after retrying %d times." % (MAX_RETRIES))
+
 class PetitionScraper(object):
     def _petition_links(self, html):
         for mo in re.finditer(r'<td class="name"><a href="([^"]+)" class="text_link">', html):
