@@ -69,8 +69,15 @@ def urlfetch(url):
         # a local variable 'f'.
         try:
             f = urllib2.urlopen(url)
+        
         except urllib2.HTTPError, f:
             pass
+        
+        except urllib2.URLError, e:
+            logging.info("Error: %s. Sleeping for %d seconds", e, backoff)
+            time.sleep(backoff)
+            backoff, retries = min(backoff * 2, MAX_BACKOFF_SECS), retries + 1
+            continue
         
         try:
             if f.code == 200:
