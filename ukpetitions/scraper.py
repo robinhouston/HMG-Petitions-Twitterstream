@@ -104,8 +104,8 @@ class PetitionScraper(object):
             yield _unescape(mo.group(1))
     
     def _petition_vote_counts(self, html):
-        for mo in re.finditer(r'<td class="name"><a href="([^"]+)" class="text_link">.*?<td class="sig_count">([\d,]+)</td>', html):
-            yield mo.groups()
+        for mo in re.finditer(r'(?s)<td class="name"><a href="([^"]+)" class="text_link">.*?<td class="sig_count">([\d,]+)</td>', html):
+            yield mo.group(1), _int(mo.group(2))
     
     def _parse_petition_html(self, html):
         return {
@@ -135,7 +135,7 @@ class PetitionScraper(object):
             
             next_link = _extract(r'<li class="next_link">\s*<a href="([^"]*)', html, tolerate_missing=True)
             if next_link:
-                path = next_link
+                query_path = next_link
             else:
                 break
     
