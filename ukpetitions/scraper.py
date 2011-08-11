@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- encoding: utf-8 -*-
 
 import datetime, htmlentitydefs, logging, os, re, sys, time, urllib, urllib2
 
