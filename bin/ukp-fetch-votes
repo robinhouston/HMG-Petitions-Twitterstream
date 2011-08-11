@@ -1,0 +1,40 @@
+#!/usr/bin/python -u
+# -*- encoding: utf-8 -*-
+
+# Fetch vote counts
+
+import os
+import sys
+
+home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+sys.path = [os.path.join(home, "lib")] + sys.path + [home]
+
+import datetime
+import logging
+
+import redis
+
+import ukpetitions.scraper
+
+class Fetcher(object):
+    def __init__(self, r):
+        self.r = r
+        self.scraper = ukpetitions.scraper.PetitionScraper()
+    
+    def record_vote_counts(self):
+        r = self.r
+        
+        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        logging.info("Using timestamp %s", timestamp)
+        r.rpush("counts", timestamp)
+        
+        for link, count in self.scraper.fetch_vote_counts():
+            logging.info("%s %d", link, count)
+            r.hset("count@" + timestamp, link, count)
+            
+def main():
+    logging.basicConfig(level=logging.INFO)
+    Fetcher(redis.Redis()).record_vote_counts()
+
+if __name__ == "__main__":
+    main()
