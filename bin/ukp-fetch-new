@@ -1,4 +1,5 @@
 #!/usr/bin/python -u
+# -*- encoding: utf-8 -*-
 
 # Fetch new petitions
 
