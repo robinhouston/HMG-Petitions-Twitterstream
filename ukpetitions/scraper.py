@@ -57,46 +57,63 @@ def _extract(regex, text, tolerate_missing=False):
 def _int(s):
     return int(re.sub(r'\D', '', s))
 
+
+def _urlfetch_once(url):
+    # The HTTPError object behaves just like a response object;
+    # we don’t want to distinguish between success and error responses
+    # so dramatically, so just get the response (whatever it is) into
+    # a local variable 'f'.
+    try:
+        f = urllib2.urlopen(url)
+    
+    except urllib2.HTTPError, f:
+        pass
+    
+    except urllib2.URLError, e:
+        return None, str(e)
+    
+    try:
+        if f.code == 200:
+            return f.read().decode("utf-8"), None
+        
+        elif 500 <= f.code < 600:
+            # 502 "Bad gateway" often indicates a service under load.
+            # 504 "Gateway timeout" is similar.
+            # The e-petitions service sometimes returns 500 transiently, too.
+            return None, "%d error" % f.code
+        
+        else:
+            raise Exception("%s returned status %d" % (url, f.code))
+    finally:
+        f.close()
+
 MAX_BACKOFF_SECS = 60
 MAX_RETRIES = 10
+FAST_REPEAT_COUNT = 10
+FAST_REPEAT_DELAY_SECS = 2
+
 def urlfetch(url):
     logging.info("Fetching %s", url)
     backoff, retries = 1, 0
     while retries < MAX_RETRIES:
+        html, e = _urlfetch_once(url)
+        if html is not None:
+            return html
         
-        # The HTTPError object behaves just like a response object;
-        # we don’t want to distinguish between success and error responses
-        # so dramatically, so just get the response (whatever it is) into
-        # a local variable 'f'.
-        try:
-            f = urllib2.urlopen(url)
+        logging.info("Error: %s. Sleeping for %d seconds", e, backoff)
+        time.sleep(backoff)
+        backoff, retries = min(backoff * 2, MAX_BACKOFF_SECS), retries + 1
+    
+    logging.warn("We have tried %d times. Initiate fast-repeat, in a last-ditch attempt.", MAX_RETRIES)
+    for i in range(FAST_REPEAT_COUNT):
+        html, e = _urlfetch_once(url)
+        if html is not None:
+            return html
         
-        except urllib2.HTTPError, f:
-            pass
-        
-        except urllib2.URLError, e:
-            logging.info("Error: %s. Sleeping for %d seconds", e, backoff)
-            time.sleep(backoff)
-            backoff, retries = min(backoff * 2, MAX_BACKOFF_SECS), retries + 1
-            continue
-        
-        try:
-            if f.code == 200:
-                return f.read().decode("utf-8")
-            elif f.code == 502 or f.code == 504:
-                # 502 "Bad gateway" often indicates a service under load.
-                # 504 "Gateway timeout" is similar.
-                # Back off and try again.
-                logging.info("502 error. Sleeping for %d seconds", backoff)
-                time.sleep(backoff)
-                backoff, retries = min(backoff * 2, MAX_BACKOFF_SECS), retries + 1
-                continue
-            
-            raise Exception("%s returned status %d" % (url, f.code))
-        finally:
-            f.close()
-
-    raise Exception("Giving up after retrying %d times." % (MAX_RETRIES))
+        logging.info("Error: %s. Sleeping for %d seconds", e, FAST_REPEAT_DELAY_SECS)
+        time.sleep(FAST_REPEAT_DELAY_SECS)
+    
+    raise Exception("Giving up after trying a total of %d times." % (MAX_RETRIES + FAST_REPEAT_COUNT))
 
 class PetitionScraper(object):
     def _petition_links(self, html):
