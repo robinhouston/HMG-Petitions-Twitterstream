@@ -24,6 +24,7 @@ class Tweeter(object):
     self.tweepy_api = tweepy_api
   
   def post_tweet(self, tweet):
+    logging.debug("Posting tweet: %s", tweet)
     kwargs = {}
     if "in_reply_to_status_id" in tweet:
       kwargs["in_reply_to_status_id"] = tweet["in_reply_to_status_id"]
