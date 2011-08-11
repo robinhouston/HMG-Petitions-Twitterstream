@@ -9,6 +9,7 @@ import redis
 URLBASE = "http://epetitions.direct.gov.uk"
 URLS = {
     "OPEN_PETITIONS_RECENT_FIRST": "/petitions.html?state=open&sort=created&order=desc",
+    "OPEN_PETITIONS_MOST_VOTES_FIRST": "/petitions.html?state=open&sort=count&order=desc",
 }
 
 def _unescape(text):
@@ -96,13 +97,12 @@ def urlfetch(url):
 
 class PetitionScraper(object):
     def _petition_links(self, html):
-        for mo in re.finditer(r'<td class="name"><a href="([^"]+)" class="text_link">([^<]+)', html):
-            link, title = mo.groups()
-            yield _unescape(link) #, _unescape(title.strip())
+        for mo in re.finditer(r'<td class="name"><a href="([^"]+)" class="text_link">', html):
+            yield _unescape(mo.group(1))
     
-    def _petitions(self, html):
-        for link in self._petition_links(html):
-            yield self._petition(link)
+    def _petition_vote_counts(self, html):
+        for mo in re.finditer(r'<td class="name"><a href="([^"]+)" class="text_link">.*?<td class="sig_count">([\d,]+)</td>', html):
+            yield mo.groups()
     
     def _parse_petition_html(self, html):
         return {
@@ -125,17 +125,28 @@ class PetitionScraper(object):
         r["link"] = link
         return r
 
-    def fetch_petitions(self, path=URLS["OPEN_PETITIONS_RECENT_FIRST"]):
+    def _each_serp(self, query_path):
         while True:
-            html = urlfetch(URLBASE + path)
-            for petition in self._petitions(html):
-                yield petition
+            html = urlfetch(URLBASE + query_path)
+            yield html
             
             next_link = _extract(r'<li class="next_link">\s*<a href="([^"]*)', html, tolerate_missing=True)
             if next_link:
                 path = next_link
             else:
                 break
+    
+    def fetch_petitions(self, path=URLS["OPEN_PETITIONS_RECENT_FIRST"]):
+        for html in self._each_serp(path):
+            for link in self._petition_links(html):
+                yield self._petition(link)
+    
+    def fetch_vote_counts(self, path=URLS["OPEN_PETITIONS_MOST_VOTES_FIRST"]):
+        for html in self._each_serp(path):
+            for link, count in self._petition_vote_counts(html):
+                if count < 100:
+                    return
+                # XXXX STORE XXXX
 
 class PetitionStore(object):
     def __init__(self, r):
