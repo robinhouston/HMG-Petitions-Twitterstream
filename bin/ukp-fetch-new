@@ -28,10 +28,11 @@ class Fetcher(object):
             if r.exists(petition["link"]):
                 logging.info("%s already exists", petition["link"])
                 break
-            r.lpush("oldest-first", petition["link"])
-            r.lpush("new-and-untweeted", petition["link"])
             for k, v in petition.items():
                 r.hset(petition["link"], k, v)
+            
+            r.lpush("oldest-first", petition["link"])
+            r.lpush("new-and-untweeted", petition["link"])
 
 def main():
     logging.basicConfig(level=logging.INFO)
