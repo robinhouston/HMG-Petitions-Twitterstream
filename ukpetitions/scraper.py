@@ -166,13 +166,3 @@ class PetitionStore(object):
             self.r.lpush("new-and-untweeted", petition["link"])
             for k, v in petition.items():
                 self.r.hset(petition["link"], k, v)
-
-def main():
-    logging.basicConfig(level=logging.INFO)
-    r = redis.Redis()
-    
-    petition_store = PetitionStore(r)
-    petition_store.get_new_petitions()
-
-if __name__ == "__main__":
-    main()
