@@ -1,2 +1,35 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
+# -*- encoding: utf-8 -*-
 
+import json
+import logging
+import os
+import sys
+import time
+
+home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+sys.path = [os.path.join(home, "lib")] + sys.path + [home]
+
+import redis
+
+def main():
+    r = redis.Redis()
+    
+    while True:
+        key, link = r.blpop("new-and-untweeted", 0)
+        
+        logging.info("Tweeting %s", link)
+        title, author = r.hmget(link, ("title", "created_by"))
+        status = "%s (%s) http://epetitions.direct.gov.uk%s" % ( title, author, link )
+        
+        if len(status) > 140:
+            need_to_remove = len(status) - 140 # Number of chars we need to remove
+            truncated_title = title[:(len(title) - need_to_remove - 1)] + u"…"
+            status = "%s (%s) http://epetitions.direct.gov.uk%s" % ( truncated_title, author, link )
+        
+        print json.dumps({"status": status})
+        time.sleep(30)
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()
