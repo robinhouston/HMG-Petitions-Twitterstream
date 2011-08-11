@@ -1,3 +1,5 @@
 .DS_Store
 *.pyc
 dump.rdb
+/etc/twitter.json
+/scratch
