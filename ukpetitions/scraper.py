@@ -149,7 +149,7 @@ class PetitionScraper(object):
             for link, count in self._petition_vote_counts(html):
                 if count < 100:
                     return
-                # XXXX STORE XXXX
+                yield link, count
 
 class PetitionStore(object):
     def __init__(self, r):
