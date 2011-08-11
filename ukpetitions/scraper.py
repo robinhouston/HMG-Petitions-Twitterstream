@@ -3,7 +3,7 @@
 
 import datetime, htmlentitydefs, logging, os, re, sys, time, urllib, urllib2
 
-sys.path = [os.path.join(os.path.dirname(__file__), "lib")] + sys.path
+sys.path = [os.path.join(os.path.dirname(__file__), os.path.pardir, "lib")] + sys.path
 import redis
 
 URLBASE = "http://epetitions.direct.gov.uk"
