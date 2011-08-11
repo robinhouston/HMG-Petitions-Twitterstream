@@ -2,6 +2,9 @@
 
 # Fetch new petitions
 
+import os
+import sys
+
 home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 sys.path = [os.path.join(home, "lib")] + sys.path + [home]
 
