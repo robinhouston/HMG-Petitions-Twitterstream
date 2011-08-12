@@ -61,7 +61,7 @@ class Fetcher(object):
     def queue_new_petitions(self):
         new_links = self.get_new_petitions()
         for link in new_links:
-            r.rpush("new-and-untweeted", link)
+            self.r.rpush("new-and-untweeted", link)
         return bool(new_links)
     
     def loop(self):
