@@ -3,13 +3,13 @@
 
 # Fetch new petitions
 
+import logging
 import os
 import sys
+import time
 
 home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 sys.path = [os.path.join(home, "lib")] + sys.path + [home]
-
-import logging
 
 import redis
 
