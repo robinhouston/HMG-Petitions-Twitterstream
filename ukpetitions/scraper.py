@@ -12,6 +12,23 @@ URLS = {
     "OPEN_PETITIONS_MOST_VOTES_FIRST": "/petitions.html?state=open&sort=count&order=desc",
 }
 
+class _lazy_dict(object):
+    def __init__(self, f, *args, **kwargs):
+        self.f = f
+        self.args = args
+        self.kwargs = kwargs
+        self.d = None
+    
+    def __getitem__(self, key):
+        if self.d is None:
+            self.d = self.f(*self.args, **self.kwargs)
+        return self.d.__getitem__(key)
+    
+    def items(self):
+        if self.d is None:
+            self.d = self.f(*self.args, **self.kwargs)
+        return self.d.items()
+
 def _unescape(text):
     """
     Removes HTML or XML character references and entities from a text string.
@@ -159,7 +176,7 @@ class PetitionScraper(object):
     def fetch_petitions(self, path=URLS["OPEN_PETITIONS_RECENT_FIRST"]):
         for html in self._each_serp(path):
             for link in self._petition_links(html):
-                yield self._petition(link)
+                yield link, _lazy_dict(self._petition, link)
     
     def fetch_vote_counts(self, path=URLS["OPEN_PETITIONS_MOST_VOTES_FIRST"]):
         for html in self._each_serp(path):
