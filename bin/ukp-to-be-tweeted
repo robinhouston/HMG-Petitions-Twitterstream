@@ -13,7 +13,7 @@ sys.path = [os.path.join(home, "lib")] + sys.path + [home]
 import redis
 
 # Number of seconds to delay between tweets
-DELAY_DECS = 120
+DELAY_SECS = 300
 
 def main():
     r = redis.Redis()
