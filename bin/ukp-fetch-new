@@ -28,6 +28,7 @@ class Fetcher(object):
         r = self.r
         
         new_links = []
+	consecutive_already = 0
         for link, petition in self.scraper.fetch_petitions():
             logging.info("Looking at %s", link)
             if r.exists(link):
