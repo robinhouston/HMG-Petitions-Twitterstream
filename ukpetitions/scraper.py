@@ -167,19 +167,3 @@ class PetitionScraper(object):
                 if count < 100:
                     return
                 yield link, count
-
-class PetitionStore(object):
-    def __init__(self, r):
-        self.r = r
-        self.scraper = PetitionScraper()
-    
-    def get_new_petitions(self):
-        for petition in self.scraper.fetch_petitions():
-            logging.info("Loaded %s (%s)", petition["link"], petition["title"])
-            if self.r.exists(petition["link"]):
-                logging.info("%s already exists", petition["link"])
-                break
-            self.r.lpush("oldest-first", petition["link"])
-            self.r.lpush("new-and-untweeted", petition["link"])
-            for k, v in petition.items():
-                self.r.hset(petition["link"], k, v)
