@@ -17,7 +17,7 @@ import ukpetitions.scraper
 
 # How many consecutive petitions do we need to see that we have seen
 # already, to conclude there are no more for us to find.
-MAX_CONSECUTIVE = 5
+MAX_CONSECUTIVE = 20
 
 class Fetcher(object):
     def __init__(self, r):
