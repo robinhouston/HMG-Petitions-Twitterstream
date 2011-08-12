@@ -23,7 +23,7 @@ MAX_CONSECUTIVE = 20
 MIN_SLEEP_SECS = 30
 
 # The maximum length of time to sleep between fetches
-MAX_SLEEP_SECS = 3600
+MAX_SLEEP_SECS = 1200
 
 class Fetcher(object):
     def __init__(self, r):
