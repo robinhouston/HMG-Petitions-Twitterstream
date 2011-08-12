@@ -19,6 +19,12 @@ import ukpetitions.scraper
 # already, to conclude there are no more for us to find.
 MAX_CONSECUTIVE = 20
 
+# The minimum length of time to sleep between fetches
+MIN_SLEEP_SECS = 30
+
+# The maximum length of time to sleep between fetches
+MAX_SLEEP_SECS = 3600
+
 class Fetcher(object):
     def __init__(self, r):
         self.r = r
@@ -50,12 +56,27 @@ class Fetcher(object):
             r.lpush("oldest-first", link)
         
         new_links.reverse() # Order them oldest-first
+        return new_links
+    
+    def queue_new_petitions(self):
+        new_links = self.get_new_petitions()
         for link in new_links:
             r.rpush("new-and-untweeted", link)
+        return bool(new_links)
+    
+    def loop(self):
+        sleep_secs = MIN_SLEEP_SECS
+        while True:
+            if self.queue_new_petitions():
+                sleep_secs = MIN_SLEEP_SECS
+            else:
+                sleep_secs = min(sleep_secs * 2, MAX_SLEEP_SECS)
+            logging.info("Sleeping for %d seconds", sleep_secs)
+            time.sleep(sleep_secs)
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-    Fetcher(redis.Redis()).get_new_petitions()
+    Fetcher(redis.Redis()).loop()
 
 if __name__ == "__main__":
     main()
