@@ -1,0 +1,5 @@
+#!/bin/bash
+
+bin/ukp-tweetd >> logs/tweetd.out 2>> logs/tweetd.err &
+bin/ukp-fetch-new >> logs/fetch-new.log 2>&1 &
+
