@@ -35,7 +35,7 @@ class Fetcher(object):
             r.lpush("new-and-untweeted", petition["link"])
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     Fetcher(redis.Redis()).get_new_petitions()
 
 if __name__ == "__main__":
