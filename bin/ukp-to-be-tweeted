@@ -12,6 +12,9 @@ sys.path = [os.path.join(home, "lib")] + sys.path + [home]
 
 import redis
 
+# Number of seconds to delay between tweets
+DELAY_DECS = 120
+
 def main():
     r = redis.Redis()
     
@@ -28,7 +31,7 @@ def main():
             status = "%s (%s) http://epetitions.direct.gov.uk%s" % ( truncated_title, author, link )
         
         print json.dumps({"status": status})
-        time.sleep(30)
+        time.sleep(DELAY_SECS)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
