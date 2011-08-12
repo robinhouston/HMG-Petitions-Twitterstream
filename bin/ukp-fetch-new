@@ -52,10 +52,10 @@ class Fetcher(object):
             logging.info("Loading %s (%s)", link, petition["title"])
             for k, v in petition.items():
                 r.hset(link, k, v)
-            
-            r.lpush("oldest-first", link)
         
         new_links.reverse() # Order them oldest-first
+        for link in new_links:
+            r.rpush("oldest-first", link)
         return new_links
     
     def queue_new_petitions(self):
