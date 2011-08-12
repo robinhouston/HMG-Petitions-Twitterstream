@@ -15,6 +15,10 @@ import redis
 
 import ukpetitions.scraper
 
+# How many consecutive petitions do we need to see that we have seen
+# already, to conclude there are no more for us to find.
+MAX_CONSECUTIVE = 5
+
 class Fetcher(object):
     def __init__(self, r):
         self.r = r
@@ -23,16 +27,30 @@ class Fetcher(object):
     def get_new_petitions(self):
         r = self.r
         
-        for petition in self.scraper.fetch_petitions():
-            logging.info("Loaded %s (%s)", petition["link"], petition["title"])
-            if r.exists(petition["link"]):
-                logging.info("%s already exists", petition["link"])
-                break
-            for k, v in petition.items():
-                r.hset(petition["link"], k, v)
+        new_links = []
+        for link, petition in self.scraper.fetch_petitions():
+            logging.info("Looking at %s", link)
+            if r.exists(link):
+                logging.info("%s already exists", link)
+                consecutive_already += 1
+                if consecutive_already == MAX_CONSECUTIVE:
+                    logging.info("Found %d consecutive already-seen entries; stopping.", consecutive_already)
+                    break
+                else:
+                    continue
             
-            r.lpush("oldest-first", petition["link"])
-            r.lpush("new-and-untweeted", petition["link"])
+            consecutive_already = 0
+            new_links.append(link)
+            
+            logging.info("Loading %s (%s)", link, petition["title"])
+            for k, v in petition.items():
+                r.hset(link, k, v)
+            
+            r.lpush("oldest-first", link)
+        
+        new_links.reverse() # Order them oldest-first
+        for link in new_links:
+            r.rpush("new-and-untweeted", link)
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
