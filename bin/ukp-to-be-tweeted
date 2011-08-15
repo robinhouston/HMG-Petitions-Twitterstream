@@ -22,7 +22,7 @@ def main():
         key, link = r.blpop("new-and-untweeted", 0)
         
         logging.info("Tweeting %s", link)
-        title, author = r.hmget(link, ("title", "created_by"))
+        title, author = (( x.decode("utf-8") for x in r.hmget(link, ("title", "created_by")) ))
         status = "%s (%s) http://epetitions.direct.gov.uk%s" % ( title, author, link )
         
         if len(status) > 140:
