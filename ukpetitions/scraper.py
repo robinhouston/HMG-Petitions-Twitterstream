@@ -169,6 +169,8 @@ class PetitionScraper(object):
             
             next_link = _extract(r'<li class="next_link">\s*<a href="([^"]*)', html, tolerate_missing=True)
             if next_link:
+                # Strangely the next link is actually wrong with sort=created; correct this.
+                next_link = re.sub(r"sort=created_at", "sort=created", next_link)
                 query_path = next_link
             else:
                 break
