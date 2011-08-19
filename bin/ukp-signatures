@@ -1,0 +1,28 @@
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
+
+import logging
+import os
+import sys
+
+home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+sys.path = [os.path.join(home, "lib")] + sys.path + [home]
+
+import redis
+
+r = redis.Redis()
+
+def print_counts(petition_key):
+    for timestamp in r.lrange("counts", 0, -1):
+        try:
+            signatures = r.zscore("count@" + timestamp, petition_key)
+        except redis.exceptions.ResponseError:
+            signatures = int(r.hget("count@" + timestamp, petition_key))
+
+        if signatures is not None:
+            print "%s\t%d" % (timestamp, signatures)
+
+
+if __name__ == "__main__":
+    print_counts(sys.argv[1])
+
