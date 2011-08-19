@@ -1,0 +1,4 @@
+#!/bin/bash
+
+redis-cli <<< 'lrange new-and-untweeted 0 -1'
+
