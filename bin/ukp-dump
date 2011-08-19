@@ -1,0 +1,30 @@
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
+
+# Fetch new petitions
+
+import csv
+import logging
+import os
+import sys
+import time
+
+home = os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+sys.path = [os.path.join(home, "lib")] + sys.path + [home]
+
+import redis
+
+r = redis.Redis()
+c = csv.writer(sys.stdout)
+
+c.writerow(["key", "department", "title", "created_by", "closing_date"])
+for petition in r.lrange("oldest-first", 0, -1):
+  o = r.hgetall(petition)
+  c.writerow([
+    petition,
+    o["department"],
+    o["title"],
+    o["created_by"],
+    o["closing_date"],
+  ])
+
