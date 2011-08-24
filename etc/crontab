@@ -1,0 +1,1 @@
+00 */2 * * * "$HOME/Petition data/bin/ukp-fetch-votes" >> "$HOME/Petition data/logs/fetch-votes.log" 2>&1
